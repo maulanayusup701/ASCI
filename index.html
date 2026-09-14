@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ASCII Camera - Real-time ASCII Art dari Kamera</title>
+    <meta name="title" content="ASCII Camera - Real-time ASCII Art dari Kamera" />
+    <meta name="description"
+        content="Ubah tampilan kamera perangkatmu menjadi seni ASCII secara real-time, langsung di browser." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ASCII Camera - Real-time ASCII Art dari Kamera" />
+    <meta property="og:description"
+        content="Ubah tampilan kamera perangkatmu menjadi seni ASCII secara real-time, langsung di browser." />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="ASCII Camera - Real-time ASCII Art dari Kamera" />
+    <meta property="twitter:description"
+        content="Ubah tampilan kamera perangkatmu menjadi seni ASCII secara real-time, langsung di browser." />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f2f0e8;
+            --ink: #0a0a0a;
+            --panel: #fefdf8;
+            --fg: #0a0a0a;
+            --muted: #4a4a4a;
+            --accent: #ffe600;
+            --accent2: #ff3d00;
+            --border: 4px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            background-image:
+                linear-gradient(var(--ink) 1px, transparent 1px),
+                linear-gradient(90deg, var(--ink) 1px, transparent 1px);
+            background-size: 28px 28px;
+            background-position: -1px -1px;
+            color: var(--fg);
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .topbar {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 4px;
+            background: var(--accent);
+            border: var(--border) solid var(--ink);
+            box-shadow: 8px 8px 0 var(--ink);
+            padding: 14px 16px;
+        }
+
+        .hamburger-btn {
+            background: var(--ink);
+            color: var(--accent);
+            border: var(--border) solid var(--ink);
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+            font-weight: 900;
+            cursor: pointer;
+            border-radius: 0;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 4px 4px 0 var(--ink);
+        }
+
+        .hamburger-btn:hover {
+            background: var(--accent2);
+            color: var(--ink);
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 var(--ink);
+        }
+
+        .hamburger-btn:active {
+            transform: translate(0, 0);
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+
+        .title-wrap {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        h1 {
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            color: var(--ink);
+            margin: 0;
+            text-transform: uppercase;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sub {
+            color: var(--ink);
+            font-size: 11px;
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Overlay + Slide-out panel */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 10, 10, 0.75);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+            z-index: 100;
+        }
+
+        .overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .controls {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            height: 100dvh;
+            width: 320px;
+            max-width: 88vw;
+            background: var(--panel);
+            border-right: var(--border) solid var(--ink);
+            padding: 18px;
+            padding-bottom: calc(18px + env(safe-area-inset-bottom));
+            z-index: 101;
+            transform: translateX(-102%);
+            transition: transform 0.2s ease;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 10px 0 0 rgba(10, 10, 10, 0.15);
+        }
+
+        .controls.open {
+            transform: translateX(0);
+        }
+
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: var(--border) solid var(--ink);
+            padding-bottom: 12px;
+            margin-bottom: 4px;
+        }
+
+        .controls-header span {
+            font-size: 16px;
+            letter-spacing: 0px;
+            color: var(--ink);
+            text-transform: uppercase;
+            font-weight: 900;
+            background: var(--accent);
+            padding: 2px 8px;
+            border: 2px solid var(--ink);
+        }
+
+        .close-btn {
+            background: var(--ink);
+            border: 2px solid var(--ink);
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: 900;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px 10px;
+        }
+
+        .close-btn:hover {
+            background: var(--accent2);
+            color: var(--ink);
+        }
+
+        .ctrl-group {
+            display: flex;
+            flex-direction: column;
+            font-size: 11px;
+            color: var(--ink);
+            gap: 8px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-bottom: 2px dashed var(--ink);
+            padding-bottom: 14px;
+        }
+
+        .ctrl-group:last-child {
+            border-bottom: none;
+        }
+
+        button {
+            background: var(--fg);
+            color: var(--accent);
+            border: 3px solid var(--ink);
+            padding: 10px 14px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            border-radius: 0;
+            transition: transform 0.08s, box-shadow 0.08s;
+            width: 100%;
+            box-shadow: 4px 4px 0 var(--ink);
+            touch-action: manipulation;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent);
+            color: var(--ink);
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 var(--ink);
+        }
+
+        button:active:not(:disabled) {
+            transform: translate(0, 0);
+            box-shadow: 1px 1px 0 var(--ink);
+        }
+
+        button:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+
+        input[type="range"] {
+            accent-color: var(--accent2);
+            width: 100%;
+            height: 6px;
+            background: var(--ink);
+            touch-action: manipulation;
+        }
+
+        select {
+            background: var(--panel);
+            color: var(--ink);
+            border: 3px solid var(--ink);
+            padding: 8px;
+            font-family: inherit;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            width: 100%;
+            border-radius: 0;
+        }
+
+        label input[type="checkbox"] {
+            accent-color: var(--accent2);
+            width: 16px;
+            height: 16px;
+        }
+
+        #output {
+            background: var(--ink);
+            color: #eafff0;
+            border: var(--border) solid var(--ink);
+            box-shadow: 8px 8px 0 var(--accent2);
+            padding: 10px;
+            white-space: pre;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 20px;
+            line-height: 1;
+            letter-spacing: 0px;
+            font-weight: bold;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+            max-width: 95vw;
+            max-height: 78vh;
+            max-height: 78dvh;
+            user-select: text;
+            margin-top: 24px;
+        }
+
+        video,
+        canvas.hidden {
+            display: none;
+        }
+
+        .status {
+            margin-top: 12px;
+            font-size: 11px;
+            color: var(--ink);
+            background: var(--accent);
+            border: 2px solid var(--ink);
+            padding: 4px 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        /* ---------- Tablet ---------- */
+        @media (max-width: 900px) {
+            body {
+                padding: 14px;
+            }
+
+            .topbar {
+                box-shadow: 6px 6px 0 var(--ink);
+                gap: 12px;
+                padding: 12px 14px;
+            }
+
+            #output {
+                box-shadow: 6px 6px 0 var(--accent2);
+                max-width: 100%;
+                margin-top: 16px;
+            }
+        }
+
+        /* ---------- Mobile ---------- */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                background-size: 20px 20px;
+            }
+
+            .topbar {
+                gap: 10px;
+                padding: 10px 12px;
+                border-width: 3px;
+                box-shadow: 5px 5px 0 var(--ink);
+            }
+
+            .hamburger-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 18px;
+                border-width: 3px;
+                box-shadow: 3px 3px 0 var(--ink);
+            }
+
+            h1 {
+                font-size: 16px;
+            }
+
+            .sub {
+                font-size: 9px;
+                letter-spacing: 0.5px;
+            }
+
+            .controls {
+                width: 280px;
+                padding: 14px;
+                border-right-width: 3px;
+            }
+
+            .controls-header span {
+                font-size: 13px;
+            }
+
+            #output {
+                border-width: 3px;
+                box-shadow: 5px 5px 0 var(--accent2);
+                padding: 8px;
+                max-width: 100%;
+                max-height: 66vh;
+                max-height: 66dvh;
+                margin-top: 12px;
+            }
+
+            .status {
+                font-size: 10px;
+                padding: 4px 8px;
+                width: 100%;
+                max-width: 95vw;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .sub {
+                display: none;
+            }
+
+            h1 {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="topbar">
+        <button class="hamburger-btn" id="menuBtn" aria-label="Buka menu pengaturan">☰</button>
+        <div class="title-wrap">
+            <h1>ASCII Camera</h1>
+            <div class="sub">Real-time ASCII art dari kamera perangkat</div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="controls" id="controls">
+        <div class="controls-header">
+            <span>Pengaturan</span>
+            <button class="close-btn" id="closeBtn" aria-label="Tutup menu">✕</button>
+        </div>
+
+        <div class="ctrl-group">
+            Kamera
+            <button id="toggleCamBtn">Hentikan Kamera</button>
+        </div>
+        <div class="ctrl-group">
+            Resolusi (lebar karakter): <span id="resVal">151</span>
+            <input type="range" id="resSlider" min="40" max="220" value="151">
+        </div>
+        <div class="ctrl-group">
+            Ukuran font (px): <span id="fontVal">20</span>
+            <input type="range" id="fontSlider" min="4" max="20" value="20">
+        </div>
+        <div class="ctrl-group">
+            Karakter set
+            <select id="charsetSelect">
+                <option value="detailed" selected>Detail (halus, banyak karakter)</option>
+                <option value="alphabet">Alfabet (A-Z)</option>
+                <option value="simple">Simple</option>
+                <option value="blocks">Blocks ░▒▓█</option>
+            </select>
+        </div>
+        <div class="ctrl-group">
+            Mode Warna
+            <select id="colorModeSelect">
+                <option value="none">Polos (hijau terminal)</option>
+                <option value="grayscale" selected>Hitam Putih</option>
+                <option value="color">Warna Asli</option>
+            </select>
+        </div>
+        <div class="ctrl-group">
+            Ambang gelap: <span id="threshVal">0.35</span>
+            <input type="range" id="threshSlider" min="0" max="0.9" step="0.05" value="0.35">
+        </div>
+        <div class="ctrl-group">
+            Mode
+            <label style="color:var(--fg); font-size:12px; display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="invertToggle"> Invert (untuk background terang)
+            </label>
+        </div>
+        <div class="ctrl-group">
+            &nbsp;
+            <button id="snapBtn" disabled>Simpan sebagai teks</button>
+        </div>
+    </div>
+
+    <pre id="output">Meminta akses kamera...</pre>
+    <div class="status" id="status"></div>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" class="hidden"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const output = document.getElementById('output');
+        const toggleCamBtn = document.getElementById('toggleCamBtn');
+        const snapBtn = document.getElementById('snapBtn');
+        const resSlider = document.getElementById('resSlider');
+        const resVal = document.getElementById('resVal');
+        const fontSlider = document.getElementById('fontSlider');
+        const fontVal = document.getElementById('fontVal');
+        const threshSlider = document.getElementById('threshSlider');
+        const threshVal = document.getElementById('threshVal');
+        const charsetSelect = document.getElementById('charsetSelect');
+        const colorModeSelect = document.getElementById('colorModeSelect');
+        const invertToggle = document.getElementById('invertToggle');
+        const statusEl = document.getElementById('status');
+
+        // Hamburger menu elements
+        const menuBtn = document.getElementById('menuBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const overlay = document.getElementById('overlay');
+        const controls = document.getElementById('controls');
+
+        function openMenu() {
+            controls.classList.add('open');
+            overlay.classList.add('open');
+        }
+        function closeMenu() {
+            controls.classList.remove('open');
+            overlay.classList.remove('open');
+        }
+        menuBtn.addEventListener('click', openMenu);
+        closeBtn.addEventListener('click', closeMenu);
+        overlay.addEventListener('click', closeMenu);
+
+        charsetSelect.addEventListener('change', () => {
+            console.log('[Karakter set] diubah ke:', charsetSelect.value);
+        });
+
+        colorModeSelect.addEventListener('change', () => {
+            console.log('[Mode Warna] diubah ke:', colorModeSelect.value);
+        });
+
+        invertToggle.addEventListener('change', () => {
+            console.log('[Invert] status:', invertToggle.checked);
+        });
+
+        const CHARSETS = {
+            detailed: "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ",
+            simple: "@%#*+=-:. ",
+            blocks: "█▓▒░ ",
+            alphabet: "MWNBRQHKDGOAUZXCVYJTLFPESI "
+        };
+
+        let stream = null;
+        let animationId = null;
+        const FONT_ASPECT = 0.55; // koreksi rasio karakter monospace (tinggi > lebar)
+
+        // Sesuaikan nilai default resolusi & font berdasarkan lebar layar
+        // supaya ASCII art tetap terbaca dan tidak overflow di HP/tablet.
+        function applyResponsiveDefaults() {
+            const w = window.innerWidth;
+            let defaultRes, defaultFont;
+            if (w < 400) {
+                defaultRes = 70;
+                defaultFont = 6;
+            } else if (w < 600) {
+                defaultRes = 90;
+                defaultFont = 7;
+            } else if (w < 900) {
+                defaultRes = 120;
+                defaultFont = 9;
+            } else {
+                return; // biarkan default desktop (151 / 20)
+            }
+            resSlider.value = defaultRes;
+            resVal.textContent = defaultRes;
+            fontSlider.value = defaultFont;
+            fontVal.textContent = defaultFont;
+            output.style.fontSize = defaultFont + 'px';
+        }
+        applyResponsiveDefaults();
+
+        resSlider.addEventListener('input', () => {
+            resVal.textContent = resSlider.value;
+            console.log('[Resolusi] lebar karakter diubah ke:', resSlider.value);
+        });
+
+        fontSlider.addEventListener('input', () => {
+            fontVal.textContent = fontSlider.value;
+            output.style.fontSize = fontSlider.value + 'px';
+            console.log('[Font] ukuran font diubah ke:', fontSlider.value + 'px');
+        });
+
+        threshSlider.addEventListener('input', () => {
+            threshVal.textContent = parseFloat(threshSlider.value).toFixed(2);
+            console.log('[Ambang gelap] threshold diubah ke:', parseFloat(threshSlider.value).toFixed(2));
+        });
+
+        toggleCamBtn.addEventListener('click', () => {
+            if (stream) {
+                stopCamera();
+            } else {
+                startCamera();
+            }
+        });
+
+        async function startCamera() {
+            try {
+                statusEl.textContent = 'Meminta akses kamera...';
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' },
+                    audio: false
+                });
+                video.srcObject = stream;
+                await video.play();
+                toggleCamBtn.textContent = 'Hentikan Kamera';
+                snapBtn.disabled = false;
+                statusEl.textContent = 'Kamera aktif';
+                renderLoop();
+            } catch (err) {
+                statusEl.textContent = 'Gagal mengakses kamera: ' + err.message;
+                output.textContent = 'Tidak bisa mengakses kamera.\nPastikan izin kamera diberikan dan halaman dibuka via HTTPS atau localhost.';
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                stream = null;
+            }
+            if (animationId) cancelAnimationFrame(animationId);
+            toggleCamBtn.textContent = 'Mulai Kamera';
+            snapBtn.disabled = true;
+            statusEl.textContent = 'Kamera dihentikan';
+        }
+
+        function renderLoop() {
+            if (!stream) return;
+            drawAsciiFrame();
+            animationId = requestAnimationFrame(renderLoop);
+        }
+
+        function drawAsciiFrame() {
+            if (video.videoWidth === 0) return;
+
+            const cols = parseInt(resSlider.value, 10);
+            const rows = Math.floor((cols * (video.videoHeight / video.videoWidth)) * FONT_ASPECT);
+
+            canvas.width = cols;
+            canvas.height = rows;
+
+            // Mirror horizontal seperti kaca (facingMode user)
+            ctx.save();
+            ctx.translate(cols, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, cols, rows);
+            ctx.restore();
+
+            const frame = ctx.getImageData(0, 0, cols, rows).data;
+            const charsetRaw = CHARSETS[charsetSelect.value];
+            const charset = charsetRaw.replace(/ /g, ''); // buang spasi bawaan, kita handle threshold sendiri
+            const invert = invertToggle.checked;
+            const colorMode = colorModeSelect.value; // 'none' | 'grayscale' | 'color'
+            const threshold = parseFloat(threshSlider.value);
+
+            let html = '';
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const i = (y * cols + x) * 4;
+                    const r = frame[i], g = frame[i + 1], b = frame[i + 2];
+                    let brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                    if (invert) brightness = 1 - brightness;
+
+                    let ch;
+                    if (brightness < threshold) {
+                        // area gelap -> kosongkan
+                        ch = '&nbsp;';
+                    } else {
+                        // area terang -> petakan ke charset (makin terang makin "padat" karakternya)
+                        const t = (brightness - threshold) / (1 - threshold); // 0..1
+                        const charIndex = Math.min(
+                            charset.length - 1,
+                            Math.floor(t * (charset.length - 1))
+                        );
+                        ch = escapeHtml(charset[charIndex]);
+                    }
+
+                    if (ch === '&nbsp;') {
+                        html += ch;
+                    } else if (colorMode === 'color') {
+                        const br = Math.max(r, g, b);
+                        const boost = br < 90 ? 90 / Math.max(br, 1) : 1;
+                        const rr = Math.min(255, Math.round(r * boost));
+                        const gg = Math.min(255, Math.round(g * boost));
+                        const bb = Math.min(255, Math.round(b * boost));
+                        html += `<span style="color:rgb(${rr},${gg},${bb})">${ch}</span>`;
+                    } else if (colorMode === 'grayscale') {
+                        let gray = Math.round((0.299 * r + 0.587 * g + 0.114 * b));
+                        gray = Math.max(gray, 90); // floor supaya tidak nyaris hitam di atas hitam
+                        html += `<span style="color:rgb(${gray},${gray},${gray})">${ch}</span>`;
+                    } else {
+                        html += ch;
+                    }
+                }
+                html += '\n';
+            }
+            output.innerHTML = html;
+        }
+
+        function escapeHtml(ch) {
+            if (ch === '<') return '&lt;';
+            if (ch === '>') return '&gt;';
+            if (ch === '&') return '&amp;';
+            return ch;
+        }
+
+        snapBtn.addEventListener('click', () => {
+            const text = output.innerText;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ascii-art-' + Date.now() + '.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        window.addEventListener('beforeunload', stopCamera);
+
+        // Auto-start kamera saat halaman dimuat
+        startCamera();
+    </script>
+
+</body>
+
+</html>
